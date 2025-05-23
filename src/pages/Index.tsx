@@ -115,7 +115,8 @@ const Index = () => {
       const { error } = await supabase
         .from('submissions')
         .insert({
-          nano_address: nanoAddress.trim()
+          nano_address: nanoAddress.trim(),
+          email: "noemail@example.com" // Default email as we don't collect it anymore
         });
       
       if (error) throw error;
@@ -280,9 +281,9 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Congratulations Alert Dialog with CSGOEmpire Ad */}
+      {/* Congratulations Alert Dialog */}
       <AlertDialog open={showCongrats} onOpenChange={closeCongrats}>
-        <AlertDialogContent className="bg-gradient-to-br from-cyan-500 to-blue-600 border-0 text-white max-w-md">
+        <AlertDialogContent className="bg-gradient-to-br from-cyan-500 to-blue-600 border-0 text-white">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-2xl font-bold text-center">
               🎉 Congratulations! 🎉
@@ -292,30 +293,6 @@ const Index = () => {
               <p className="mt-2">Your rewards will be sent to your wallet after manual review.</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          
-          {/* CSGOEmpire Ad in Congratulations Dialog */}
-          <div className="my-4">
-            <a 
-              href="https://csgoempire.com/r/Supplyclamp" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="block bg-gradient-to-r from-yellow-500 to-amber-600 p-4 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 group"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-xl">🎮 CLAIM MORE REWARDS!</p>
-                  <div className="flex items-center mt-1">
-                    <Gift className="w-5 h-5 mr-1 text-yellow-200" />
-                    <p className="text-white font-medium">Free Case + Bonus at CSGOEmpire!</p>
-                  </div>
-                </div>
-                <div className="bg-white/20 p-2 rounded-full group-hover:bg-white/30 transition-all">
-                  <ExternalLink className="w-6 h-6" />
-                </div>
-              </div>
-            </a>
-          </div>
-          
           <AlertDialogFooter>
             <AlertDialogAction className="w-full bg-white text-blue-600 hover:bg-gray-100">
               Awesome!

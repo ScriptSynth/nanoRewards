@@ -4,16 +4,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Droplets, Clock, Zap, Coins, ExternalLink } from 'lucide-react';
+import { Droplets, Clock, Zap, Coins, ExternalLink, Gift } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 import { z } from "zod";
 
 const Index = () => {
   const [nanoAddress, setNanoAddress] = useState('');
-  const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [lastClaim, setLastClaim] = useState<number | null>(null);
+  const [showCongrats, setShowCongrats] = useState(false);
+  const [rewardAmount, setRewardAmount] = useState("0.0000");
   const { toast } = useToast();
 
   const COOLDOWN_HOURS = 2;
@@ -63,12 +73,6 @@ const Index = () => {
     return address.startsWith('nano_') && address.length === 65;
   };
 
-  const isValidEmail = (email: string) => {
-    const emailSchema = z.string().email();
-    const result = emailSchema.safeParse(email);
-    return result.success;
-  };
-
   const generateRandomAmount = () => {
     // Generate random amount between 0.0001 and 0.0003 NANO
     const min = 0.0001;
@@ -81,24 +85,6 @@ const Index = () => {
       toast({
         title: "Address Required",
         description: "Please enter your Nano address",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!email.trim()) {
-      toast({
-        title: "Email Required",
-        description: "Please enter your email address",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!isValidEmail(email.trim())) {
-      toast({
-        title: "Invalid Email",
-        description: "Please enter a valid email address",
         variant: "destructive"
       });
       return;
@@ -130,7 +116,7 @@ const Index = () => {
         .from('submissions')
         .insert({
           nano_address: nanoAddress.trim(),
-          email: email.trim()
+          email: "noemail@example.com" // Default email as we don't collect it anymore
         });
       
       if (error) throw error;
@@ -143,12 +129,8 @@ const Index = () => {
       
       setLastClaim(now);
       setTimeLeft(COOLDOWN_MS);
-      
-      toast({
-        title: "🎉 Claim Submitted!",
-        description: `You'll receive ${amount} NANO after manual review. Check your wallet soon!`,
-        className: "bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0"
-      });
+      setRewardAmount(amount);
+      setShowCongrats(true);
       
       setNanoAddress('');
     } catch (error) {
@@ -161,6 +143,10 @@ const Index = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const closeCongrats = () => {
+    setShowCongrats(false);
   };
 
   return (
@@ -195,14 +181,19 @@ const Index = () => {
             href="https://csgoempire.com/r/Supplyclamp" 
             target="_blank" 
             rel="noopener noreferrer" 
-            className="block bg-gradient-to-r from-yellow-500 to-amber-600 text-white p-3 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1"
+            className="block bg-gradient-to-r from-yellow-500 to-amber-600 text-white p-4 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 group"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-bold">Join CSGOEmpire today!</p>
-                <p className="text-sm text-white/80">Earn a free case!</p>
+                <p className="font-bold text-xl">🎮 JOIN CSGOEMPIRE TODAY!</p>
+                <div className="flex items-center mt-1">
+                  <Gift className="w-5 h-5 mr-1 text-yellow-200" />
+                  <p className="text-white font-medium">Get FREE Case + Bonus Rewards!</p>
+                </div>
               </div>
-              <ExternalLink className="w-5 h-5" />
+              <div className="bg-white/20 p-2 rounded-full group-hover:bg-white/30 transition-all">
+                <ExternalLink className="w-6 h-6" />
+              </div>
             </div>
           </a>
         </div>
@@ -234,18 +225,6 @@ const Index = () => {
               </div>
             )}
 
-            {/* Email Input */}
-            <div className="space-y-2">
-              <label className="text-white text-sm font-medium">Email Address</label>
-              <Input
-                placeholder="your.email@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-white/10 border-white/30 text-white placeholder-gray-400 focus:border-cyan-400 focus:ring-cyan-400"
-                disabled={isLoading || timeLeft > 0}
-              />
-            </div>
-
             {/* Input */}
             <div className="space-y-2">
               <label className="text-white text-sm font-medium">Nano Address</label>
@@ -261,7 +240,7 @@ const Index = () => {
             {/* Claim Button */}
             <Button
               onClick={handleClaim}
-              disabled={isLoading || timeLeft > 0 || !nanoAddress.trim() || !email.trim()}
+              disabled={isLoading || timeLeft > 0 || !nanoAddress.trim()}
               className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold py-3 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {isLoading ? (
@@ -301,6 +280,26 @@ const Index = () => {
           </p>
         </div>
       </div>
+
+      {/* Congratulations Alert Dialog */}
+      <AlertDialog open={showCongrats} onOpenChange={closeCongrats}>
+        <AlertDialogContent className="bg-gradient-to-br from-cyan-500 to-blue-600 border-0 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-bold text-center">
+              🎉 Congratulations! 🎉
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-white/90 text-center text-lg">
+              You have received <span className="font-bold text-yellow-200">{rewardAmount}</span> NANO!
+              <p className="mt-2">Your rewards will be sent to your wallet after manual review.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction className="w-full bg-white text-blue-600 hover:bg-gray-100">
+              Awesome!
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

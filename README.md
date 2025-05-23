@@ -1,6 +1,6 @@
-## 💧 **Nano Faucet**
+## 💧 **NanoRewards**
 
-**_Nano Faucet_** is a lightweight, feeless crypto faucet built to distribute small amounts of **NANO** (between **0.0001 to 0.0003 NANO**) to users **every 2 hours**. Designed with speed and simplicity in mind, this faucet runs on a **React frontend** and leverages the **Nano RPC protocol** for secure transactions.
+**_NanoRewards_** is a lightweight, feeless crypto faucet built to distribute small amounts of **NANO** (between **0.0001 to 0.0003 NANO**) to users **every 2 hours**. Designed with speed and simplicity in mind, this faucet runs on a **React frontend** and leverages the **Nano RPC protocol** for secure transactions.
 
 ---
 

@@ -4,10 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Droplets, Clock, Zap, Coins } from 'lucide-react';
+import { Droplets, Clock, Zap, Coins, ExternalLink } from 'lucide-react';
+import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
 
 const Index = () => {
   const [nanoAddress, setNanoAddress] = useState('');
+  const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [lastClaim, setLastClaim] = useState<number | null>(null);
@@ -18,7 +21,7 @@ const Index = () => {
 
   useEffect(() => {
     // Check for existing claim time
-    const savedClaimTime = localStorage.getItem('nanodrops_last_claim');
+    const savedClaimTime = localStorage.getItem('nanorewards_last_claim');
     if (savedClaimTime) {
       const claimTime = parseInt(savedClaimTime);
       setLastClaim(claimTime);
@@ -60,11 +63,17 @@ const Index = () => {
     return address.startsWith('nano_') && address.length === 65;
   };
 
+  const isValidEmail = (email: string) => {
+    const emailSchema = z.string().email();
+    const result = emailSchema.safeParse(email);
+    return result.success;
+  };
+
   const generateRandomAmount = () => {
-    // Generate random amount between 0.0001 and 0.1 NANO
+    // Generate random amount between 0.0001 and 0.0003 NANO
     const min = 0.0001;
-    const max = 0.1;
-    return (Math.random() * (max - min) + min).toFixed(4);
+    const max = 0.0003;
+    return (Math.random() * (max - min) + min).toFixed(6);
   };
 
   const handleClaim = async () => {
@@ -72,6 +81,24 @@ const Index = () => {
       toast({
         title: "Address Required",
         description: "Please enter your Nano address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!email.trim()) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!isValidEmail(email.trim())) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
         variant: "destructive"
       });
       return;
@@ -98,39 +125,36 @@ const Index = () => {
     setIsLoading(true);
 
     try {
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Store submission in Supabase
+      const { error } = await supabase
+        .from('submissions')
+        .insert({
+          nano_address: nanoAddress.trim(),
+          email: email.trim()
+        });
+      
+      if (error) throw error;
       
       const amount = generateRandomAmount();
       const now = Date.now();
       
       // Save claim time to localStorage
-      localStorage.setItem('nanodrops_last_claim', now.toString());
-      
-      // Save address to localStorage (simulating database)
-      const savedAddresses = JSON.parse(localStorage.getItem('nanodrops_addresses') || '[]');
-      const addressEntry = {
-        address: nanoAddress.trim(),
-        amount: parseFloat(amount),
-        timestamp: now,
-        id: Date.now()
-      };
-      savedAddresses.push(addressEntry);
-      localStorage.setItem('nanodrops_addresses', JSON.stringify(savedAddresses));
+      localStorage.setItem('nanorewards_last_claim', now.toString());
       
       setLastClaim(now);
       setTimeLeft(COOLDOWN_MS);
       
       toast({
-        title: "🎉 Claim Successful!",
-        description: `You received ${amount} NANO! Check your wallet in a few minutes.`,
+        title: "🎉 Claim Submitted!",
+        description: `You'll receive ${amount} NANO after manual review. Check your wallet soon!`,
         className: "bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0"
       });
       
       setNanoAddress('');
     } catch (error) {
+      console.error("Error submitting claim:", error);
       toast({
-        title: "Claim Failed",
+        title: "Submission Failed",
         description: "Something went wrong. Please try again.",
         variant: "destructive"
       });
@@ -160,9 +184,27 @@ const Index = () => {
             </div>
           </div>
           <h1 className="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-            NanoDrops
+            NanoRewards
           </h1>
           <p className="text-gray-300 text-lg">Free Nano Faucet</p>
+        </div>
+
+        {/* Ad Banner */}
+        <div className="mb-6 animate-scale-in">
+          <a 
+            href="https://csgoempire.com/r/Supplyclamp" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="block bg-gradient-to-r from-yellow-500 to-amber-600 text-white p-3 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold">Join CSGOEmpire today!</p>
+                <p className="text-sm text-white/80">Earn a free case!</p>
+              </div>
+              <ExternalLink className="w-5 h-5" />
+            </div>
+          </a>
         </div>
 
         {/* Main Card */}
@@ -173,7 +215,7 @@ const Index = () => {
               Claim Your Nano
             </CardTitle>
             <CardDescription className="text-gray-300">
-              Receive between 0.0001 nano to 0.1 nano - try your luck!
+              Receive between 0.0001 nano to 0.0003 nano - try your luck!
             </CardDescription>
           </CardHeader>
           
@@ -192,6 +234,18 @@ const Index = () => {
               </div>
             )}
 
+            {/* Email Input */}
+            <div className="space-y-2">
+              <label className="text-white text-sm font-medium">Email Address</label>
+              <Input
+                placeholder="your.email@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-white/10 border-white/30 text-white placeholder-gray-400 focus:border-cyan-400 focus:ring-cyan-400"
+                disabled={isLoading || timeLeft > 0}
+              />
+            </div>
+
             {/* Input */}
             <div className="space-y-2">
               <label className="text-white text-sm font-medium">Nano Address</label>
@@ -207,7 +261,7 @@ const Index = () => {
             {/* Claim Button */}
             <Button
               onClick={handleClaim}
-              disabled={isLoading || timeLeft > 0 || !nanoAddress.trim()}
+              disabled={isLoading || timeLeft > 0 || !nanoAddress.trim() || !email.trim()}
               className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold py-3 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {isLoading ? (
@@ -234,7 +288,7 @@ const Index = () => {
                 ⏱️ One claim every {COOLDOWN_HOURS} hours
               </p>
               <p className="text-gray-400 text-xs">
-                Payouts are processed automatically
+                Payouts are processed manually after review
               </p>
             </div>
           </CardContent>
@@ -243,7 +297,7 @@ const Index = () => {
         {/* Footer */}
         <div className="text-center mt-6 animate-fade-in">
           <p className="text-gray-400 text-sm">
-            Powered by NanoDrops • Free Nano for Everyone
+            Powered by NanoRewards • Free Nano for Everyone
           </p>
         </div>
       </div>
